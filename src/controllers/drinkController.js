@@ -167,6 +167,34 @@ let handleGetBill = async (req, res) => {
         })
     }
 };
+let handleClearBill = async (req, res) => {
+    try {
+        let data = await drinkService.handleClearBillService(req.body);
+        return res.status(200).json(
+            data
+        )
+    } catch (error) {
+        console.log('Error', error)
+        return res.status(200).json({
+            errorCode: 1,
+            errorMess: "Error From server!"
+        })
+    }
+};
+let handleGetBillCus = async (req, res) => {
+    try {
+        let data = await drinkService.handleGetBillCusService(req.query.id, req.query.date);
+        return res.status(200).json(
+            data
+        )
+    } catch (error) {
+        console.log('Error', error)
+        return res.status(200).json({
+            errorCode: 1,
+            errorMess: "Error From server!"
+        })
+    }
+};
 module.exports = {
     handleCreateNewDrink,
     getAllListDrinks,
@@ -177,5 +205,6 @@ module.exports = {
     handleAddToCart,
     handleGetInfoCartById,
     handleDeleteOder, handleSaveBill,
-    handleGetBill
+    handleGetBill, handleClearBill,
+    handleGetBillCus
 }

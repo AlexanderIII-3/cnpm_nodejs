@@ -8,7 +8,9 @@ import _, { includes } from "lodash";
 let handleCreateNewDrinkService = (dataInput) => {
     return new Promise(async (resolve, reject) => {
         try {
-            if (!dataInput.action || !dataInput.name || !dataInput.description || !dataInput.selectedPrice
+            if (!dataInput.action
+                || !dataInput.name || !dataInput.description
+                || !dataInput.selectedPrice || !dataInput.limitOder
                 || !dataInput.selectedTypeDish) {
                 resolve({
                     errorCode: 1,
@@ -34,7 +36,8 @@ let handleCreateNewDrinkService = (dataInput) => {
                             price: dataInput.selectedPrice,
                             decription: dataInput.description,
                             image: dataInput.image,
-                            dishId: dataInput.selectedTypeDish
+                            dishId: dataInput.selectedTypeDish,
+                            limitOder: dataInput.limitOder
 
                         })
                     }
@@ -57,6 +60,7 @@ let handleCreateNewDrinkService = (dataInput) => {
                             data.decription = dataInput.description;
                             data.image = dataInput.image;
                             data.dishId = dataInput.selectedTypeDish;
+                            data.limitOder = dataInput.limitOder
                             await data.save();
                         }
                     }
@@ -323,34 +327,65 @@ let handleAddToCartService = (dataInput) => {
                     errorCode: 1,
                     errorMess: "Missing required parameter!"
                 })
-            } else {
+            }
 
-                let existing = await db.Cart.findOne(
-                    {
-                        where: {
+            else {
+                let doLimit = await db.ListDish.findOne({
+                    where: {
+                        id: dataInput.drinkId,
+                        name: dataInput.name,
+
+
+                    },
+                    raw: false
+
+                })
+                console.log('check data sending', doLimit.limitOder)
+
+                if (doLimit.limitOder > 0) {
+
+                    // console.log('check limit oder', dataInput.limitOder)
+
+                    doLimit.limitOder = (+doLimit.limitOder - +dataInput.amount);
+                    await doLimit.save()
+
+
+                    let existing = await db.Cart.findOne(
+                        {
+                            where: {
+                                userId: dataInput.idUser,
+                                date: dataInput.date, drinkId: dataInput.drinkId,
+                                size: dataInput.size
+
+                            },
+                            raw: false
+                        }
+
+                    );
+                    if (existing) {
+                        existing.amount = (+existing.amount + dataInput.amount);
+                        await existing.save()
+                    } else {
+                        await db.Cart.create({
+                            nameDrink: dataInput.name,
+                            price: dataInput.price,
+                            nameUser: dataInput.nameUser,
+                            size: dataInput.size,
                             userId: dataInput.idUser,
-                            date: dataInput.date, drinkId: dataInput.drinkId,
-                            size: dataInput.size
-
-                        },
-                        // attributes: ['nameDrink', 'date', 'size', 'userId'],
-                        raw: false
+                            amount: dataInput.amount,
+                            drinkId: dataInput.drinkId,
+                            date: dataInput.date,
+                        })
                     }
+                    resolve({
+                        errorCode: 0,
+                        errorMess: "Ô Kê"
+                    })
 
-                );
-                if (existing) {
-                    existing.amount = (+existing.amount + dataInput.amount);
-                    await existing.save()
-                } else {
-                    await db.Cart.create({
-                        nameDrink: dataInput.name,
-                        price: dataInput.price,
-                        nameUser: dataInput.nameUser,
-                        size: dataInput.size,
-                        userId: dataInput.idUser,
-                        amount: dataInput.amount,
-                        drinkId: dataInput.drinkId,
-                        date: dataInput.date,
+                } if (doLimit.limitOder < 0) {
+                    resolve({
+                        errorCode: -1,
+                        errorMess: "Curren we was soild out this drink, please choose another drink. Thanks!"
                     })
                 }
 
@@ -365,10 +400,7 @@ let handleAddToCartService = (dataInput) => {
 
 
 
-            resolve({
-                errorCode: 0,
-                errorMess: "Ô Kê"
-            })
+
 
 
         } catch (error) {
@@ -598,6 +630,135 @@ let handleGetBillService = async (id, date) => {
 
     });
 };
+let handleClearBillService = (data) => {
+    return new Promise(async (resolve, reject) => {
+
+
+        try {
+            if (!data.listOder || !data.cusId || !data.date) {
+                resolve({
+                    errorCode: 1,
+                    errorMess: "Missing required parameter!"
+                })
+            }
+            else {
+                let listOder = data.listOder;
+                let existing = await db.Bill_Cus.findAll({
+                    where: {
+                        cusId: data.cusId,
+                        date: data.date,
+                    },
+                    attributes: ['nameDrink', 'date', 'size', 'amount']
+                })
+
+                let toCreate = _.differenceWith(listOder, existing, (a, b) => {
+                    return a.nameDrink === b.nameDrink && +a.date === +b.date && a.size === b.size
+                        && +a.amount === +b.amount;
+
+                });
+                // create data
+                if (toCreate && toCreate.length > 0) {
+                    await db.Bill_Cus.bulkCreate(toCreate);
+
+                    await db.Bill.destroy({
+                        where: {
+                            cusId: data.cusId
+                        }
+                    })
+
+                }
+                resolve({
+                    errorCode: 0,
+                    errorMess: "O Ke!",
+
+                })
+
+            }
+        } catch (error) {
+            console.log(error)
+            reject({
+                errorCode: 1,
+                errorMess: 'Delete falled!'
+            })
+        }
+
+
+    });
+};
+let handleGetBillCusService = (id, date) => {
+    return new Promise(async (resolve, reject) => {
+        try {
+
+
+            if (!id || !date) {
+                resolve({
+                    errorCode: 1,
+                    errorMess: "Missing parameter"
+                })
+            } else {
+                if (date === "ALL") {
+                    let res = await db.Bill_Cus.findAll({
+                        where: {
+                            cusId: id,
+                        },
+                        include: [
+                            { model: db.Allcode, as: 'priceTypeDataBillCus', attributes: ['valueEn', 'valueVi'] },
+                        ],
+                        nest: true,
+                    })
+                    if (!res) {
+
+                        res = [];
+
+                    }
+                    resolve({
+                        errorCode: 0,
+                        errorMess: "Ô Kê bay be",
+                        data: res
+                    })
+                }
+                if (date !== "All") {
+                    let res = await db.Bill_Cus.findAll({
+                        where: {
+                            cusId: id,
+                            date: date
+                        },
+                        include: [
+                            { model: db.Allcode, as: 'priceTypeDataBillCus', attributes: ['valueEn', 'valueVi'] },
+                        ],
+                        nest: true,
+                    })
+                    if (!res) {
+
+                        res = [];
+
+                    }
+                    resolve({
+                        errorCode: 0,
+                        errorMess: "Ô Kê bay be",
+                        data: res
+                    })
+                }
+
+
+
+            }
+
+
+
+
+
+
+        } catch (error) {
+            console.log(error)
+            reject({
+                errorCode: 1,
+                errorMess: 'Create falled'
+            })
+        }
+
+    });
+};
 module.exports = {
     handleCreateNewDrinkService: handleCreateNewDrinkService,
     getAllListDrinksService: getAllListDrinksService,
@@ -608,5 +769,7 @@ module.exports = {
     handleGetInfoCartByIdService: handleGetInfoCartByIdService,
     handleDeleteOderService: handleDeleteOderService,
     handleSaveBillService: handleSaveBillService,
-    handleGetBillService: handleGetBillService
+    handleGetBillService: handleGetBillService,
+    handleClearBillService: handleClearBillService,
+    handleGetBillCusService: handleGetBillCusService
 }

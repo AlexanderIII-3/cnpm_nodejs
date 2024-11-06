@@ -31,6 +31,8 @@ let initWebRoute = (app) => {
     Router.post('/api/handle-delete-oder', drinkController.handleDeleteOder)
     Router.post('/api/handle-save-bill', drinkController.handleSaveBill);
     Router.get('/api/handle-get-all-bill', drinkController.handleGetBill);
+    Router.post('/api/handle-clear-bill', drinkController.handleClearBill);
+    Router.get('/api/handle-get-all-customers', drinkController.handleGetBillCus);
     return app.use('/', Router);
 
 };

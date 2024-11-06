@@ -21,6 +21,7 @@ module.exports = (sequelize, DataTypes) => {
         decription: DataTypes.TEXT,
         image: DataTypes.BLOB,
         dishId: DataTypes.STRING,
+        limitOder: DataTypes.INTEGER,
     }, {
         sequelize,
         modelName: 'ListDish',
