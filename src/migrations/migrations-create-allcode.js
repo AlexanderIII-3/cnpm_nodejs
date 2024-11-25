@@ -17,9 +17,6 @@ module.exports = {
             valueEN: {
                 type: Sequelize.STRING
             },
-            valueVI: {
-                type: Sequelize.STRING
-            },
 
             createdAt: {
                 allowNull: false,

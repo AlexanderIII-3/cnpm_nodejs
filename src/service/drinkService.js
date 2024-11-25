@@ -10,7 +10,7 @@ let handleCreateNewDrinkService = (dataInput) => {
         try {
             if (!dataInput.action
                 || !dataInput.name || !dataInput.description
-                || !dataInput.selectedPrice || !dataInput.limitOder
+                || !dataInput.selectedPrice || !dataInput.limitOrder
                 || !dataInput.selectedTypeDish) {
                 resolve({
                     errorCode: 1,
@@ -37,7 +37,7 @@ let handleCreateNewDrinkService = (dataInput) => {
                             decription: dataInput.description,
                             image: dataInput.image,
                             dishId: dataInput.selectedTypeDish,
-                            limitOder: dataInput.limitOder
+                            limitOder: ataInput.limitOrder
 
                         })
                     }
@@ -60,7 +60,7 @@ let handleCreateNewDrinkService = (dataInput) => {
                             data.decription = dataInput.description;
                             data.image = dataInput.image;
                             data.dishId = dataInput.selectedTypeDish;
-                            data.limitOder = dataInput.limitOder
+                            data.limitOder = dataInput.limitOrder
                             await data.save();
                         }
                     }
@@ -94,8 +94,8 @@ let getAllListDrinksService = () => {
             let res = await db.ListDish.findAll({
 
                 include: [
-                    { model: db.Allcode, as: 'priceTypeData', attributes: ['valueEn', 'valueVi'] },
-                    { model: db.Allcode, as: 'dishTypeData', attributes: ['valueEn', 'valueVi'] },
+                    { model: db.Allcode, as: 'priceTypeData', attributes: ['valueEn'] },
+                    { model: db.Allcode, as: 'dishTypeData', attributes: ['valueEn'] },
                 ],
                 raw: true,
                 nest: true,
@@ -182,8 +182,8 @@ let handleGetDetailDrinkService = (id) => {
                 where: { id: id },
 
                 include: [
-                    { model: db.Allcode, as: 'priceTypeData', attributes: ['valueEn', 'valueVi'] },
-                    { model: db.Allcode, as: 'dishTypeData', attributes: ['valueEn', 'valueVi'] },
+                    { model: db.Allcode, as: 'priceTypeData', attributes: ['valueEn'] },
+                    { model: db.Allcode, as: 'dishTypeData', attributes: ['valueEn'] },
                 ],
                 nest: true,
 
@@ -235,8 +235,8 @@ let handleGetAllDrinkByListIdService = (dataInput) => {
                 // attributes: { exclude: ['image'] },
 
                 include: [
-                    { model: db.Allcode, as: 'priceTypeData', attributes: ['valueEn', 'valueVi'] },
-                    { model: db.Allcode, as: 'dishTypeData', attributes: ['valueEn', 'valueVi'] },
+                    { model: db.Allcode, as: 'priceTypeData', attributes: ['valueEn'] },
+                    { model: db.Allcode, as: 'dishTypeData', attributes: ['valueEn'] },
                 ],
                 nest: true,
 
@@ -282,8 +282,8 @@ let handleGetDetailDrinkByIdService = (dataId) => {
                     id: dataId,
                 },
                 include: [
-                    { model: db.Allcode, as: 'priceTypeData', attributes: ['valueEn', 'valueVi'] },
-                    { model: db.Allcode, as: 'dishTypeData', attributes: ['valueEn', 'valueVi'] },
+                    { model: db.Allcode, as: 'priceTypeData', attributes: ['valueEn'] },
+                    { model: db.Allcode, as: 'dishTypeData', attributes: ['valueEn'] },
                 ],
                 nest: true,
 
@@ -340,7 +340,6 @@ let handleAddToCartService = (dataInput) => {
                     raw: false
 
                 })
-                console.log('check data sending', doLimit.limitOder)
 
                 if (doLimit.limitOder > 0) {
 
@@ -431,7 +430,7 @@ let handleGetInfoCartByIdService = (id, date) => {
                             userId: id,
                         },
                         include: [
-                            { model: db.Allcode, as: 'priceTypeData1', attributes: ['valueEn', 'valueVi',] },
+                            { model: db.Allcode, as: 'priceTypeData1', attributes: ['valueEn',] },
                             { model: db.ListDish, attributes: ['image'] },
                         ],
                         nest: true,
@@ -455,7 +454,7 @@ let handleGetInfoCartByIdService = (id, date) => {
                             date: date
                         },
                         include: [
-                            { model: db.Allcode, as: 'priceTypeData1', attributes: ['valueEn', 'valueVi',] },
+                            { model: db.Allcode, as: 'priceTypeData1', attributes: ['valueEn'] },
                             { model: db.ListDish, attributes: ['image'] },
                         ],
                         nest: true,
@@ -598,8 +597,8 @@ let handleGetBillService = async (id, date) => {
                         date: date
                     },
                     include: [
-                        { model: db.Allcode, as: 'priceTypeDataBill', attributes: ['valueEn', 'valueVi',] },
-                        { model: db.Allcode, as: 'paymentData', attributes: ['valueEn', 'valueVi',] },
+                        { model: db.Allcode, as: 'priceTypeDataBill', attributes: ['valueEn'] },
+                        { model: db.Allcode, as: 'paymentData', attributes: ['valueEn'] },
                     ],
                     nest: true,
                 })
@@ -642,36 +641,74 @@ let handleClearBillService = (data) => {
                 })
             }
             else {
+
                 let listOder = data.listOder;
+
+                // Lấy danh sách đơn hàng đã tồn tại
                 let existing = await db.Bill_Cus.findAll({
                     where: {
                         cusId: data.cusId,
                         date: data.date,
                     },
-                    attributes: ['nameDrink', 'date', 'size', 'amount']
-                })
-
-                let toCreate = _.differenceWith(listOder, existing, (a, b) => {
-                    return a.nameDrink === b.nameDrink && +a.date === +b.date && a.size === b.size
-                        && +a.amount === +b.amount;
-
+                    attributes: ['id', 'nameDrink', 'date', 'size', 'amount'],
+                    raw: true // Trả về đối tượng JavaScript thuần
                 });
-                // create data
-                if (toCreate && toCreate.length > 0) {
-                    await db.Bill_Cus.bulkCreate(toCreate);
 
-                    await db.Bill.destroy({
-                        where: {
-                            cusId: data.cusId
-                        }
-                    })
+                // Tạo mảng mới để lưu các phần tử cần tạo hoặc cập nhật
+                let toCreate = [];
+                let toUpdate = [];
 
+                // Duyệt qua các đơn hàng trong `listOder`
+                listOder.forEach(order => {
+                    // Tìm phần tử tương ứng trong `existing`
+                    let match = existing.find(item =>
+                        item.nameDrink === order.nameDrink &&
+                        item.date === order.date &&
+                        item.size === order.size
+                    );
+
+                    if (match) {
+                        // Nếu đã tồn tại, cộng dồn giá trị amount
+                        match.amount = +match.amount + +order.amount;
+                        toUpdate.push(match); // Đưa vào danh sách cần cập nhật
+                    } else {
+                        // Nếu không tồn tại, thêm vào danh sách cần tạo
+                        toCreate.push(order);
+                    }
+                });
+
+                // Cập nhật các đơn hàng đã tồn tại
+                if (toUpdate.length > 0) {
+                    for (let update of toUpdate) {
+                        await db.Bill_Cus.update(
+                            { amount: update.amount },
+                            {
+                                where: {
+                                    id: update.id // Sử dụng `id` để cập nhật chính xác bản ghi
+                                }
+                            }
+                        );
+                    }
                 }
+
+                // Tạo mới các đơn hàng chưa tồn tại
+                if (toCreate.length > 0) {
+                    await db.Bill_Cus.bulkCreate(toCreate);
+                }
+
+                // Xóa các bản ghi trong bảng `Bill` (nếu cần)
+                await db.Bill.destroy({
+                    where: {
+                        cusId: data.cusId
+                    }
+                });
+
+                // Trả kết quả
                 resolve({
                     errorCode: 0,
                     errorMess: "O Ke!",
+                });
 
-                })
 
             }
         } catch (error) {
@@ -702,7 +739,7 @@ let handleGetBillCusService = (id, date) => {
                             cusId: id,
                         },
                         include: [
-                            { model: db.Allcode, as: 'priceTypeDataBillCus', attributes: ['valueEn', 'valueVi'] },
+                            { model: db.Allcode, as: 'priceTypeDataBillCus', attributes: ['valueEn'] },
                         ],
                         nest: true,
                     })
@@ -724,7 +761,7 @@ let handleGetBillCusService = (id, date) => {
                             date: date
                         },
                         include: [
-                            { model: db.Allcode, as: 'priceTypeDataBillCus', attributes: ['valueEn', 'valueVi'] },
+                            { model: db.Allcode, as: 'priceTypeDataBillCus', attributes: ['valueEn'] },
                         ],
                         nest: true,
                     })

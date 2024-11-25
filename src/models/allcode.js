@@ -23,7 +23,6 @@ module.exports = (sequelize, DataTypes) => {
         keyMap: DataTypes.STRING,
         type: DataTypes.STRING,
         valueEn: DataTypes.STRING,
-        valueVI: DataTypes.STRING,
 
     }, {
         sequelize,

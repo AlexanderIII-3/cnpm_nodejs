@@ -76,7 +76,6 @@ let handleGetAllDrinkByListId = async (req, res) => {
 }
 let handleGetDetailDrinkById = async (req, res) => {
     try {
-        console.log('check data id ', req.query)
 
         let data = await drinkService.handleGetDetailDrinkByIdService(req.query.id)
         return res.status(200).json(
@@ -154,7 +153,6 @@ let handleSaveBill = async (req, res) => {
 };
 let handleGetBill = async (req, res) => {
     try {
-
         let data = await drinkService.handleGetBillService(req.query.id, req.query.date);
         return res.status(200).json(
             data
